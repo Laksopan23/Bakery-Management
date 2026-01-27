@@ -136,6 +136,11 @@ public class UserDAO {
                 .orElse(null);
     }
 
+    /**
+     * DEPRECATED: Use UserService.authenticateUser() instead
+     * This method performs plaintext comparison and is insecure
+     */
+    @Deprecated(forRemoval = true)
     public boolean authenticateUser(String username, String password) {
         User user = findByUsername(username);
         return user != null && user.getPassword().equals(password);
