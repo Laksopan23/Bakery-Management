@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.backery.backery_management.dao.UserDAO;
 import com.backery.backery_management.model.User;
@@ -12,9 +14,18 @@ import com.backery.backery_management.model.User;
 public class UserService {
 
     private final UserDAO userDAO = new UserDAO();
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
-    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[A-Za-z0-9]{3,20}$");
-    private static final Pattern PASSWORD_PATTERN = Pattern.compile("^.{5,}$");
+    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(12);
+    
+    // Enhanced email validation pattern - RFC 5322 simplified
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+        "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    
+    // Username: alphanumeric, underscore, hyphen, 3-20 chars
+    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[A-Za-z0-9_-]{3,20}$");
+    
+    // Password: minimum 8 chars, at least one uppercase, one lowercase, one digit
+    private static final Pattern PASSWORD_PATTERN = Pattern.compile(
+        "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$");
 
     public List<User> getAllUsers() {
         return userDAO.getAllUsers();
@@ -31,22 +42,41 @@ public class UserService {
         }
         List<User> users = userDAO.getAllUsers();
         int newId = users.isEmpty() ? 1 : users.get(users.size() - 1).getId() + 1;
-        User newUser = new User(newId, username, password, email, role != null ? role : "User");
+        
+        // Hash password before storing
+        String hashedPassword = passwordEncoder.encode(password);
+        User newUser = new User(newId, username, hashedPassword, email, role != null ? role : "User");
         return userDAO.saveUser(newUser);
     }
 
     public boolean authenticateUser(String username, String password) {
-        return userDAO.authenticateUser(username, password);
+        if (username == null || username.trim().isEmpty() || password == null || password.isEmpty()) {
+            return false;
+        }
+        User user = userDAO.findByUsername(username);
+        if (user == null) {
+            return false;
+        }
+        // Use BCrypt to compare passwords
+        return passwordEncoder.matches(password, user.getPassword());
     }
 
     private boolean isValidRegistration(String username, String password, String email) {
+        // Null and empty checks
         if (username == null || username.trim().isEmpty()
                 || email == null || email.trim().isEmpty()
-                || password == null || password.trim().isEmpty()) {
+                || password == null || password.isEmpty()) {
             return false;
         }
+        
+        // Length checks to prevent DoS
+        if (username.length() > 100 || email.length() > 254 || password.length() > 128) {
+            return false;
+        }
+        
+        // Pattern validation
         return USERNAME_PATTERN.matcher(username.trim()).matches()
-                && PASSWORD_PATTERN.matcher(password.trim()).matches()
+                && PASSWORD_PATTERN.matcher(password).matches()
                 && EMAIL_PATTERN.matcher(email.trim()).matches();
     }
 

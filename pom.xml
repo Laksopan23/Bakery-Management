@@ -58,6 +58,22 @@
             <artifactId>commons-fileupload</artifactId>
             <version>1.5</version>
         </dependency>
+        <!-- Spring Security for password hashing and CSRF protection -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <!-- Jakarta Validation API for input validation -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <!-- Apache Commons Lang for string utilities -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.14.0</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
